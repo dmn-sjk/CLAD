@@ -40,6 +40,8 @@ class CladDetection(torch.utils.data.Dataset):
         self._remove_empty_images()
         self.img_anns = self._create_index()
 
+        print(f'img_anns: {len(self.img_annotations)}, ids: {len(self.ids)}')
+
     def _remove_empty_images(self):
         """
         Required because torchvision models can't handle empty lists for bbox in targets
@@ -61,9 +63,15 @@ class CladDetection(torch.utils.data.Dataset):
         Get a list of all category ids, required for Avalanche.
         """
         targets = []
-        for img_id in self.img_anns:
-            targets.extend(obj['category_id'] for obj in self.img_anns[img_id])
-        return torch.tensor(targets)
+        # for img_id in self.img_anns:
+        #     targets.extend(obj['category_id'] for obj in self.img_anns[img_id])
+        for id in self.ids:
+            # TODO: modify targets to: shift detection targets
+            # targets.append(self.img_anns[id])
+            # targets.append(self.img_anns[id][0]['category_id'])
+            targets.append(obj['category_id'] for obj in self.img_anns[id])
+        
+        return targets
 
     def _load_target(self, index: str):
         img_id = self.ids[index]

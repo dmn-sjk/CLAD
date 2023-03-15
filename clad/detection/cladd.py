@@ -1,6 +1,12 @@
 from clad.detection.cladd_utils import *
 from clad.utils.meta import CLADD_TRAIN_VAL_DOMAINS, CLADD_TEST_DOMAINS
 import os
+from avalanche.benchmarks.utils import (
+    make_classification_dataset,
+    classification_subset,
+)
+from avalanche.benchmarks.utils.collate_functions import detection_collate_fn
+from avalanche.benchmarks import StreamUserDef
 
 
 def get_cladd_trainval(root: str, train_transform: Callable = None, val_transform: Callable = None, avalanche=False)\
@@ -34,9 +40,57 @@ def get_cladd_trainval(root: str, train_transform: Callable = None, val_transfor
                 zip(train_sets, splits)]
 
     if avalanche:
-        from avalanche.benchmarks.utils import AvalancheDataset
-        return [AvalancheDataset(train_set) for train_set in train_sets], \
-               [AvalancheDataset(val_set) for val_set in val_sets]
+        transform_groups = dict(
+            train=(train_transform, None),
+            eval=(val_transform, None),
+        )
+
+        train_exps_datasets = []
+        for train_set in train_sets:
+            train_dataset_avl = make_classification_dataset(
+                train_set,
+                transform_groups=None,
+                initial_transform_group="train",
+                collate_fn=detection_collate_fn
+            )
+
+            train_exps_datasets.append(
+                classification_subset(train_dataset_avl)
+            )
+
+        val_exps_datasets = []
+        for val_set in val_sets:
+            val_dataset_avl = make_classification_dataset(
+                val_set,
+                transform_groups=None,
+                initial_transform_group="eval",
+                collate_fn=detection_collate_fn
+            )
+
+            val_exps_datasets.append(
+                classification_subset(val_dataset_avl)
+            )
+
+        # train_def = StreamUserDef(
+        #     exps_data=list(train_exps_datasets),
+        #     exps_task_labels=[0 for _ in range(len(train_exps_datasets))],
+        #     # origin_dataset=train_dataset,
+        #     is_lazy=False,
+        # )
+
+        # test_def = StreamUserDef(
+        #     exps_data=list(val_exps_datasets),
+        #     exps_task_labels=[0 for _ in range(len(train_exps_datasets))],
+        #     # origin_dataset=test_dataset,
+        #     is_lazy=False,
+        # )
+
+        # return train_def, test_def
+        return train_exps_datasets, val_exps_datasets
+
+
+        # return [AvalancheDataset(train_set) for train_set in train_sets], \
+        #        [AvalancheDataset(val_set) for val_set in val_sets]
     else:
         return train_sets, val_sets
 

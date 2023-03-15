@@ -32,7 +32,8 @@ def get_cladc_train(root: str, transform: Callable = None, img_size: int = 64, a
 
     if avalanche:
         from avalanche.benchmarks.utils import AvalancheDataset
-        return [AvalancheDataset(train_set) for train_set in train_sets]
+        # return [AvalancheDataset(train_set) for train_set in train_sets]
+        return train_sets
     else:
         return train_sets
 
@@ -65,7 +66,8 @@ def get_cladc_val(root: str, transform: Callable = None, img_size: int = 64, ava
     if avalanche:
         from avalanche.benchmarks.utils import AvalancheDataset
         val_set.targets = val_set.datasets[0].targets + val_set.datasets[1].targets
-        return [AvalancheDataset(val_set)]
+        # return [AvalancheDataset(val_set)]
+        return [val_set]
     else:
         return val_set
 
@@ -82,7 +84,8 @@ def get_cladc_test(root: str, transform=None, img_size: int = 64, avalanche=Fals
 
     if avalanche:
         from avalanche.benchmarks.utils import AvalancheDataset
-        return [AvalancheDataset(test_set)]
+        # return [AvalancheDataset(test_set)]
+        return [test_set]
     else:
         return test_set
 
@@ -92,13 +95,14 @@ def get_cladc_domain_test(root: str, transform: Callable = None, img_size: int =
     Returns fine-grained domain sets of the test set for each available combination, note that not all the
     combinations of domains exist.
     """
-    annot_file = os.path.join(root, 'labeled', 'annotations', 'instance_test.json')
+    annot_file = os.path.join(root, 'SSLAD-2D', 'labeled', 'annotations', 'instance_test.json')
     test_sets = get_cladc_domain_sets(root, annot_file, ["period", "weather", "city", "location"],
                                       img_size=img_size, transform=transform)
 
     if avalanche:
         from avalanche.benchmarks.utils import AvalancheDataset
-        return [AvalancheDataset(ts) for ts in test_sets if len(ts) > 0]
+        # return [AvalancheDataset(ts) for ts in test_sets if len(ts) > 0]
+        return [ts for ts in test_sets if len(ts) > 0]
     else:
         return [ts for ts in test_sets if len(ts) > 0]
 
@@ -110,6 +114,8 @@ def cladc_avalanche(root: str, train_trasform: Callable = None, test_transform: 
     from avalanche.benchmarks.scenarios.generic_benchmark_creation import create_multi_dataset_generic_benchmark
 
     train_sets = get_cladc_train(root, train_trasform, img_size, avalanche=True)
-    test_sets = get_cladc_val(root, test_transform, img_size, avalanche=True)
+    test_sets = get_cladc_test(root, test_transform, img_size, avalanche=True)
+    val_sets = get_cladc_val(root, test_transform, img_size, avalanche=True)
 
-    return create_multi_dataset_generic_benchmark(train_datasets=train_sets, test_datasets=test_sets)
+    return create_multi_dataset_generic_benchmark(train_datasets=train_sets, test_datasets=test_sets,
+                                                  other_streams_datasets={"val_sets": val_sets})
