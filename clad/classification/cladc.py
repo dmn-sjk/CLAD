@@ -1,6 +1,7 @@
 from clad.classification.cladc_utils import *
 import os
 from torch.utils.data import ConcatDataset
+from avalanche.benchmarks.utils import make_classification_dataset
 
 
 def get_cladc_train(root: str, transform: Callable = None, img_size: int = 64, avalanche=False) \
@@ -33,7 +34,10 @@ def get_cladc_train(root: str, transform: Callable = None, img_size: int = 64, a
     if avalanche:
         from avalanche.benchmarks.utils import AvalancheDataset
         # return [AvalancheDataset(train_set) for train_set in train_sets]
-        return train_sets
+        avalanche_datasets = []
+        for i, train_set in enumerate(train_sets):
+            avalanche_datasets.append(make_classification_dataset(train_set, task_labels=i))
+        return avalanche_datasets
     else:
         return train_sets
 
