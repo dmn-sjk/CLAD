@@ -73,7 +73,7 @@ class CladClassification(torch.utils.data.Dataset):
         return img
 
     def _load_target(self, obj_id: int) -> int:
-        return self.obj_annotations[obj_id]['category_id']
+        return self.obj_annotations[obj_id]['category_id'] - 1 # -1 to make labels in range <0; num_classes - 1>
 
     def _check_order(self, item):
         """
