@@ -4,7 +4,7 @@ from torch.utils.data import ConcatDataset
 from avalanche.benchmarks.utils import make_classification_dataset
 
 
-def get_cladc_train(root: str, transform: Callable = None, img_size: int = 64, avalanche=False) \
+def get_cladc_train(root: str, transform: Callable = None, img_size: int = 64, avalanche: bool = False, sequence_type: str = "source") \
         -> Sequence[CladClassification]:
     """
     Returns a sequence of training sets that are chronologically ordered, defined as in the ICCV '21 challenge.
@@ -13,6 +13,7 @@ def get_cladc_train(root: str, transform: Callable = None, img_size: int = 64, a
     :param transform: a callable transformation for the data images
     :param img_size: the width/height of the images, default is 64 by 64.
     :param avalanche: If true, this will return AvalancheDataset objects.
+    :param sequence_type: 'source', 'tta' or 'all'
     """
     task_dicts = [{'date': '20191111', 'period': 'Daytime'},
                   {'date': '20191111', 'period': 'Night'},
@@ -20,6 +21,15 @@ def get_cladc_train(root: str, transform: Callable = None, img_size: int = 64, a
                   {'date': '20191117', 'period': 'Night'},
                   {'date': '20191120', 'period': 'Daytime'},
                   {'date': '20191121', 'period': 'Night'}, ]
+    
+    if sequence_type == "source":
+        task_dicts = [task_dicts[0]]
+    elif sequence_type == "tta":
+        task_dicts = task_dicts[1:]
+    elif sequence_type == "all":
+        pass
+    else:
+        raise ValueError(f"Unknown sequence type: {sequence_type}")
 
     match_fn = (create_match_dict_fn(td) for td in task_dicts)
 
@@ -32,8 +42,6 @@ def get_cladc_train(root: str, transform: Callable = None, img_size: int = 64, a
         ts.chronological_sort()
 
     if avalanche:
-        from avalanche.benchmarks.utils import AvalancheDataset
-        # return [AvalancheDataset(train_set) for train_set in train_sets]
         avalanche_datasets = []
         for i, train_set in enumerate(train_sets):
             avalanche_datasets.append(make_classification_dataset(train_set, task_labels=i))
@@ -68,10 +76,8 @@ def get_cladc_val(root: str, transform: Callable = None, img_size: int = 64, ava
         get_matching_classification_set(root, annot_file_2, val_match_fn_2, img_size=img_size, transform=transform)])
 
     if avalanche:
-        from avalanche.benchmarks.utils import AvalancheDataset
         val_set.targets = val_set.datasets[0].targets + val_set.datasets[1].targets
-        # return [AvalancheDataset(val_set)]
-        return [val_set]
+        return [make_classification_dataset(val_set, task_labels=0)]
     else:
         return val_set
 
@@ -87,9 +93,7 @@ def get_cladc_test(root: str, transform=None, img_size: int = 64, avalanche=Fals
                                                transform=transform)
 
     if avalanche:
-        from avalanche.benchmarks.utils import AvalancheDataset
-        # return [AvalancheDataset(test_set)]
-        return [test_set]
+        return [make_classification_dataset(test_set, task_labels=0)]
     else:
         return test_set
 
@@ -117,9 +121,9 @@ def cladc_avalanche(root: str, train_trasform: Callable = None, test_transform: 
     """
     from avalanche.benchmarks.scenarios.generic_benchmark_creation import create_multi_dataset_generic_benchmark
 
-    train_sets = get_cladc_train(root, train_trasform, img_size, avalanche=True)
+    train_sets = get_cladc_train(root, train_trasform, img_size, avalanche=True, sequence_type="tta")
     test_sets = get_cladc_test(root, test_transform, img_size, avalanche=True)
     val_sets = get_cladc_val(root, test_transform, img_size, avalanche=True)
 
     return create_multi_dataset_generic_benchmark(train_datasets=train_sets, test_datasets=test_sets,
-                                                  other_streams_datasets={"val_sets": val_sets})
+                                                  other_streams_datasets={"val": val_sets})
