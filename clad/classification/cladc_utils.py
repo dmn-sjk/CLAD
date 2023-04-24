@@ -30,7 +30,7 @@ class CladClassification(torch.utils.data.Dataset):
 
     _default_transform = torchvision.transforms.Compose([
         torchvision.transforms.ToTensor(),
-        torchvision.transforms.Normalize((0.3252, 0.3283, 0.3407), (0.0265, 0.0241, 0.0252))
+        # torchvision.transforms.Normalize((0.3252, 0.3283, 0.3407), (0.0265, 0.0241, 0.0252))
     ])
 
     def __init__(
@@ -50,7 +50,7 @@ class CladClassification(torch.utils.data.Dataset):
         self.ids = ids
         self.obj_annotations, self.img_annotations = load_obj_img_dic(annot_file)
         self.img_size = img_size
-        self.transform = transform if transform is not None else CladClassification._default_transform
+        self.transform = transform # if transform is not None else CladClassification._default_transform
 
         self._prev_loaded = defaultdict(int)
         self._sorted = False
@@ -61,7 +61,7 @@ class CladClassification(torch.utils.data.Dataset):
     def targets(self):
         return [self._load_target(obj_id) for obj_id in self.ids]
 
-    def _load_image(self, obj_id: int) -> Image.Image:
+    def _load_image(self, obj_id: int) -> torch.Tensor:
 
         file_name = self.img_annotations[self.obj_annotations[obj_id]['image_id']]['file_name']
         img = _load_image(os.path.join(self.img_folder, file_name))
@@ -69,11 +69,12 @@ class CladClassification(torch.utils.data.Dataset):
         yb, ye, xb, xe = squarify_bbox(self.obj_annotations[obj_id]['bbox'])
         img = img.crop((xb, yb, xe, ye))
         img = img.resize((self.img_size, self.img_size))
+        img = torchvision.transforms.PILToTensor()(img) / 255.0
 
         return img
 
     def _load_target(self, obj_id: int) -> int:
-        return self.obj_annotations[obj_id]['category_id']
+        return self.obj_annotations[obj_id]['category_id'] - 1 # -1 to make labels in range <0; num_classes - 1>
 
     def _check_order(self, item):
         """

@@ -1,1 +1,8 @@
 /avalanche/
+.idea
+.vscode
+/data_exploration/
+/examples/
+
+*.pyc
+*.png
