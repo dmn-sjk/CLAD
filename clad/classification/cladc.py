@@ -4,8 +4,8 @@ from torch.utils.data import ConcatDataset
 from avalanche.benchmarks.utils import make_classification_dataset
 
 
-def get_cladc_train(root: str, transform: Callable = None, img_size: int = 64, avalanche: bool = False, sequence_type: str = "source") \
-        -> Sequence[CladClassification]:
+def get_cladc_train(root: str, transform: Callable = None, img_size: int = 64, avalanche: bool = False, sequence_type: str = "source",
+                    end_with_source_domain: bool = False) -> Sequence[CladClassification]:
     """
     Returns a sequence of training sets that are chronologically ordered, defined as in the ICCV '21 challenge.
 
@@ -26,6 +26,8 @@ def get_cladc_train(root: str, transform: Callable = None, img_size: int = 64, a
         task_dicts = [task_dicts[0]]
     elif sequence_type == "tta":
         task_dicts = task_dicts[1:]
+        if end_with_source_domain:
+            task_dicts.append(task_dicts[0])
     elif sequence_type == "all":
         pass
     else:
@@ -44,7 +46,13 @@ def get_cladc_train(root: str, transform: Callable = None, img_size: int = 64, a
     if avalanche:
         avalanche_datasets = []
         for i, train_set in enumerate(train_sets):
-            avalanche_datasets.append(make_classification_dataset(train_set, task_labels=i))
+            if i == len(train_sets) - 1:
+                # source domain label
+                task_label = 0
+            else:
+                task_label = i + 1
+
+            avalanche_datasets.append(make_classification_dataset(train_set, task_labels=task_label))
         return avalanche_datasets
     else:
         return train_sets
@@ -115,13 +123,14 @@ def get_cladc_domain_test(root: str, transform: Callable = None, img_size: int =
         return [ts for ts in test_sets if len(ts) > 0]
 
 
-def cladc_avalanche(root: str, train_trasform: Callable = None, test_transform: Callable = None, img_size: int = 64):
+def cladc_avalanche(root: str, train_trasform: Callable = None, test_transform: Callable = None, img_size: int = 64,
+                    end_with_source_domain: bool = False):
     """
     Creates an Avalanche benchmark for CLADC, with the default Avalanche functinalities.
     """
     from avalanche.benchmarks.scenarios.generic_benchmark_creation import create_multi_dataset_generic_benchmark
 
-    train_sets = get_cladc_train(root, train_trasform, img_size, avalanche=True, sequence_type="tta")
+    train_sets = get_cladc_train(root, train_trasform, img_size, avalanche=True, sequence_type="tta", end_with_source_domain=end_with_source_domain)
     test_sets = get_cladc_test(root, test_transform, img_size, avalanche=True)
     val_sets = get_cladc_val(root, test_transform, img_size, avalanche=True)
 
