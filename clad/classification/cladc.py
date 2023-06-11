@@ -46,13 +46,7 @@ def get_cladc_train(root: str, transform: Callable = None, img_size: int = 64, a
     if avalanche:
         avalanche_datasets = []
         for i, train_set in enumerate(train_sets):
-            if i == len(train_sets) - 1:
-                # source domain label
-                task_label = 0
-            else:
-                task_label = i + 1
-
-            avalanche_datasets.append(make_classification_dataset(train_set, task_labels=task_label))
+            avalanche_datasets.append(make_classification_dataset(train_set, task_labels=i))
         return avalanche_datasets
     else:
         return train_sets
