@@ -25,9 +25,10 @@ def get_cladc_train(root: str, transform: Callable = None, img_size: int = 64, a
     if sequence_type == "source":
         task_dicts = [task_dicts[0]]
     elif sequence_type == "tta":
+        source_domain_task = task_dicts[0]
         task_dicts = task_dicts[1:]
         if end_with_source_domain:
-            task_dicts.append(task_dicts[0])
+            task_dicts.append(source_domain_task)
     elif sequence_type == "all":
         pass
     else:
@@ -42,6 +43,7 @@ def get_cladc_train(root: str, transform: Callable = None, img_size: int = 64, a
 
     for ts in train_sets:
         ts.chronological_sort()
+        print(len(ts))
 
     if avalanche:
         avalanche_datasets = []
