@@ -43,7 +43,6 @@ def get_cladc_train(root: str, transform: Callable = None, img_size: int = 64, a
 
     for ts in train_sets:
         ts.chronological_sort()
-        print(len(ts))
 
     if avalanche:
         avalanche_datasets = []
